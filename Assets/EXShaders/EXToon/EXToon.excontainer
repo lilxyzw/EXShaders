@@ -1,9 +1,9 @@
 {
-	"Name": "EXShaders/EXToon",
-	"PropertiesPath": "EXToonProperties.exblock",
-	"HLSLIncludePath": "EXToonIncludes.exblock",
-	"BRPPath": "EXToonSubBRP.exblock",
-	"URPPath": "EXToonSubURP.exblock",
-	"HDRPPath": "EXToonSubHDRP.exblock",
+    "Name": "EXShaders/EXToon",
+    "PropertiesPath": "EXToonProperties.exblock",
+    "HLSLIncludePath": "EXToonIncludes.exblock",
+    "BRPPath": "EXToonSubBRP.exblock",
+    "URPPath": "EXToonSubURP.exblock",
+    "HDRPPath": "EXToonSubHDRP.exblock",
     "CustomEditor": "EXShaders.EXToonGUI"
 }
