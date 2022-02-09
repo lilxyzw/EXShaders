@@ -1,0 +1,157 @@
+
+    SubShader
+    {
+        Tags { "RenderType" = "HDLitShader" "Queue" = "Geometry" }
+
+        HLSLINCLUDE
+            #pragma target 4.5
+            #pragma exclude_renderers gles gles3 glcore
+        ENDHLSL
+
+        Pass
+        {
+            Name "Forward"
+            Tags { "LightMode" = "ForwardOnly" }
+
+            Stencil
+            {
+                WriteMask 6
+                Ref 0
+                Comp Always
+                Pass Replace
+            }
+            Cull        [_EXCull]
+            ZClip       [_EXZClip]
+            ZWrite      [_EXZWrite]
+            ZTest       [_EXZTest]
+            ColorMask   [_EXColorMask]
+            Offset      [_EXOffsetFactor], [_EXOffsetUnits]
+            BlendOp     [_EXBlendOp], [_EXBlendOpAlpha]
+            Blend       [_EXSrcBlend] [_EXDstBlend], [_EXSrcBlendAlpha] [_EXDstBlendAlpha]
+            AlphaToMask [_EXAlphaToMask]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_forward
+
+            #pragma shader_feature_local_fragment _ _EMISSION _DETAIL_MULX2 _PARALLAXMAP
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ForwardOutline"
+            Tags { "LightMode" = "SRPDefaultUnlit" }
+
+            Stencil
+            {
+                WriteMask 6
+                Ref 0
+                Comp Always
+                Pass Replace
+            }
+            Cull        [_EXOLCull]
+            ZClip       [_EXOLZClip]
+            ZWrite      [_EXOLZWrite]
+            ZTest       [_EXOLZTest]
+            ColorMask   [_EXOLColorMask]
+            Offset      [_EXOLOffsetFactor], [_EXOLOffsetUnits]
+            BlendOp     [_EXOLBlendOp], [_EXOLBlendOpAlpha]
+            Blend       [_EXOLSrcBlend] [_EXOLDstBlend], [_EXOLSrcBlendAlpha] [_EXOLDstBlendAlpha]
+            AlphaToMask [_EXOLAlphaToMask]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_forward
+            #pragma ex_skip_variants_shadows
+
+            #define EX_OL
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags {"LightMode" = "DepthForwardOnly"}
+
+            Stencil
+            {
+                WriteMask 8
+                Ref 0
+                Comp Always
+                Pass Replace
+            }
+            Cull        Off
+            ZClip       [_EXZClip]
+            ZWrite      On
+            ZTest       [_EXZTest]
+            ColorMask   R
+            Offset      [_EXOffsetFactor], [_EXOffsetUnits]
+            AlphaToMask [_EXAlphaToMask]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_depthonly
+
+            #define EX_OL
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "MotionVectors"
+            Tags {"LightMode" = "MotionVectors"}
+
+            Stencil
+            {
+                WriteMask 40
+                Ref 32
+                Comp Always
+                Pass Replace
+            }
+            Cull        [_EXCull]
+            ZClip       [_EXZClip]
+            ZWrite      On
+            ZTest       [_EXZTest]
+            Offset      [_EXOffsetFactor], [_EXOffsetUnits]
+            AlphaToMask [_EXAlphaToMask]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_motionvectors
+
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags {"LightMode" = "ShadowCaster"}
+
+            ZWrite On
+            ZTest LEqual
+            ColorMask 0
+            Cull [_EXCull]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_shadowcaster
+
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "SceneSelectionPass"
+            Tags { "LightMode" = "SceneSelectionPass" }
+
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_sceneselection
+
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+    }
+    Fallback "HDRP/Unlit"

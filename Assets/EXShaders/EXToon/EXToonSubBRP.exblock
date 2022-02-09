@@ -1,0 +1,159 @@
+    SubShader
+    {
+        Tags { "RenderType" = "Opaque" "Queue" = "Geometry" }
+
+        HLSLINCLUDE
+            #pragma target 3.5
+        ENDHLSL
+
+        Pass
+        {
+            Name "Forward"
+            Tags { "LightMode" = "ForwardBase" }
+
+            Stencil
+            {
+                Ref         [_EXStencilRef]
+                ReadMask    [_EXStencilReadMask]
+                WriteMask   [_EXStencilWriteMask]
+                Comp        [_EXStencilComp]
+                Pass        [_EXStencilPass]
+                Fail        [_EXStencilFail]
+                ZFail       [_EXStencilZFail]
+            }
+            Cull        [_EXCull]
+            ZClip       [_EXZClip]
+            ZWrite      [_EXZWrite]
+            ZTest       [_EXZTest]
+            ColorMask   [_EXColorMask]
+            Offset      [_EXOffsetFactor], [_EXOffsetUnits]
+            BlendOp     [_EXBlendOp], [_EXBlendOpAlpha]
+            Blend       [_EXSrcBlend] [_EXDstBlend], [_EXSrcBlendAlpha] [_EXDstBlendAlpha]
+            AlphaToMask [_EXAlphaToMask]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_forward
+
+            #pragma shader_feature_local_fragment _ _EMISSION _DETAIL_MULX2 _PARALLAXMAP
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ForwardOutline"
+            Tags { "LightMode" = "ForwardBase" }
+
+            Stencil
+            {
+                Ref         [_EXOLStencilRef]
+                ReadMask    [_EXOLStencilReadMask]
+                WriteMask   [_EXOLStencilWriteMask]
+                Comp        [_EXOLStencilComp]
+                Pass        [_EXOLStencilPass]
+                Fail        [_EXOLStencilFail]
+                ZFail       [_EXOLStencilZFail]
+            }
+            Cull        [_EXOLCull]
+            ZClip       [_EXOLZClip]
+            ZWrite      [_EXOLZWrite]
+            ZTest       [_EXOLZTest]
+            ColorMask   [_EXOLColorMask]
+            Offset      [_EXOLOffsetFactor], [_EXOLOffsetUnits]
+            BlendOp     [_EXOLBlendOp], [_EXOLBlendOpAlpha]
+            Blend       [_EXOLSrcBlend] [_EXOLDstBlend], [_EXOLSrcBlendAlpha] [_EXOLDstBlendAlpha]
+            AlphaToMask [_EXOLAlphaToMask]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_forward
+            #pragma ex_skip_variants_shadows
+
+            #define EX_OL
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ForwardAdd"
+            Tags { "LightMode" = "ForwardAdd" }
+
+            Stencil
+            {
+                Ref         [_EXStencilRef]
+                ReadMask    [_EXStencilReadMask]
+                WriteMask   [_EXStencilWriteMask]
+                Comp        [_EXStencilComp]
+                Pass        [_EXStencilPass]
+                Fail        [_EXStencilFail]
+                ZFail       [_EXStencilZFail]
+            }
+            Cull        [_EXCull]
+            ZClip       [_EXZClip]
+            ZWrite      Off
+            ZTest       LEqual
+            ColorMask   [_EXColorMask]
+            Offset      [_EXOffsetFactor], [_EXOffsetUnits]
+            BlendOp     [_EXBlendOpFA], [_EXBlendOpAlphaFA]
+            Blend       [_EXSrcBlendFA] [_EXDstBlendFA], Zero One
+            AlphaToMask [_EXAlphaToMask]
+            Fog { Color (0,0,0,0) }
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_forwardadd
+
+            #pragma shader_feature_local_fragment _ _EMISSION _DETAIL_MULX2 _PARALLAXMAP
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ForwardAddOutline"
+            Tags { "LightMode" = "ForwardAdd" }
+
+            Stencil
+            {
+                Ref         [_EXOLStencilRef]
+                ReadMask    [_EXOLStencilReadMask]
+                WriteMask   [_EXOLStencilWriteMask]
+                Comp        [_EXOLStencilComp]
+                Pass        [_EXOLStencilPass]
+                Fail        [_EXOLStencilFail]
+                ZFail       [_EXOLStencilZFail]
+            }
+            Cull        [_EXOLCull]
+            ZClip       [_EXOLZClip]
+            ZWrite      Off
+            ZTest       LEqual
+            ColorMask   [_EXOLColorMask]
+            Offset      [_EXOLOffsetFactor], [_EXOLOffsetUnits]
+            BlendOp     [_EXOLBlendOpFA], [_EXOLBlendOpAlphaFA]
+            Blend       [_EXOLSrcBlendFA] [_EXOLDstBlendFA], Zero One
+            AlphaToMask [_EXOLAlphaToMask]
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_forwardadd
+
+            #define EX_OL
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags {"LightMode" = "ShadowCaster"}
+
+            Cull [_EXCull]
+            ZWrite On
+            ZTest LEqual
+
+            HLSLPROGRAM
+            #pragma ex_multi_compile_shadowcaster
+
+            #include "EXToonCore.hlsl"
+            ENDHLSL
+        }
+    }
+    Fallback "Unlit/Texture"

@@ -1,0 +1,12 @@
+    HLSLINCLUDE
+        #pragma vertex vert
+        #pragma fragment frag
+        #pragma shader_feature_local_fragment _ _ALPHATEST_ON _ALPHABLEND_ON
+        #pragma ex_skip_variants_lightmaps
+        #pragma ex_skip_variants_decals
+        #pragma ex_skip_variants_addlightshadows
+        #pragma ex_skip_variants_probevolumes
+        #pragma ex_skip_variants_ao
+        #pragma ex_skip_variants_lightlists
+        #pragma ex_skip_variants_reflections
+    ENDHLSL

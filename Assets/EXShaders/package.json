@@ -1,0 +1,8 @@
+{
+  "name": "jp.lilxyzw.exshaders",
+  "version": "0.0.1",
+  "displayName": "EXShaders",
+  "description": "Experimental shaders for Unity.",
+  "unity": "2019.4",
+  "license": "MIT"
+}
