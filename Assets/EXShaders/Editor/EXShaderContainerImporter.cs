@@ -42,6 +42,25 @@ namespace EXShaders
         }
     }
 
+    public class EXShaderContainerAssetPostprocessor : AssetPostprocessor
+    {
+        private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
+        {
+            foreach(string path in importedAssets)
+            {
+                if(!path.EndsWith("excontainer", StringComparison.InvariantCultureIgnoreCase)) continue;
+
+                var mainobj = AssetDatabase.LoadMainAssetAtPath(path);
+                if(mainobj is Shader) ShaderUtil.RegisterShader((Shader)mainobj);
+
+                foreach(var obj in AssetDatabase.LoadAllAssetRepresentationsAtPath(path))
+                {
+                    if(obj is Shader) ShaderUtil.RegisterShader((Shader)obj);
+                }
+            }
+        }
+    }
+
     public class EXShaderContainer
     {
         private const string MULTI_COMPILE_FORWARD          = "#pragma ex_multi_compile_forward";

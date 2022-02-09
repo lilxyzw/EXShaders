@@ -138,6 +138,11 @@ SAMPLER(sampler_Layer1stColorTex);
 SAMPLER(sampler_Layer2ndColorTex);
 SAMPLER(sampler_Layer3rdColorTex);
 
+#if !defined(SHADER_API_GLES)
+    TEXTURE3D(_DitherMaskLOD);
+    SAMPLER(sampler_DitherMaskLOD);
+#endif
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Structs
 struct appdata
@@ -234,7 +239,7 @@ void EXUnpackVertexData(inout EXVertexDatas vd, v2f i, float facing)
         vd.positionWS = EXToAbsolutePositionWS(i.positionWS.xyz);
         float3 rawV = EXHeadDirection(vd.positionWS);
         vd.depth = length(rawV);
-        vd.V = vd.V / vd.depth;
+        vd.V = rawV / vd.depth;
     #endif
     #if defined(EX_V2F_POSITION_CS)
         vd.positionCS = i.positionCS;
@@ -680,6 +685,12 @@ half4 frag(v2f i EX_VFACE(facing)) : SV_Target
     EX_DEEXPOSURE(col);
     EX_APPLY_FOG(col, vd.fogFactor);
 
+    #if defined(_ALPHABLEND_ON) && defined(EX_PASS_FORWARDADD)
+        col.rgb *= saturate(col.a * 10.0);
+    #elif defined(_ALPHABLEND_ON)
+        col.rgb *= col.a;
+    #endif
+
     return col;
 }
 #else
@@ -723,6 +734,15 @@ void frag(v2f i EX_VFACE(facing) EX_SUBPASS_OUTPUTS)
         clip(col.a  - max(0.5, _Cutoff));
     #else
         col.a = 1.0;
+    #endif
+
+    #if defined(EX_PASS_SHADOWCASTER) && defined(_ALPHABLEND_ON)
+        #if defined(EX_BRP)
+            if(EX_MATRIX_P._m33 != 0.0)
+        #endif
+
+        col.a = SAMPLE3D(_DitherMaskLOD, sampler_DitherMaskLOD, float3(vd.positionCS.xy*0.25,col.a*0.9375)).a;
+        clip(col.a - 0.5);
     #endif
 
     vd.N = normalize(vd.N);

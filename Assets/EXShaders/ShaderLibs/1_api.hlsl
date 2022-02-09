@@ -30,8 +30,14 @@
 #if defined(SAMPLE2DLOD)
     #undef SAMPLE2DLOD
 #endif
+#if defined(SAMPLE3D)
+    #undef SAMPLE3D
+#endif
 #if defined(TEXTURE2D)
     #undef TEXTURE2D
+#endif
+#if defined(TEXTURE3D)
+    #undef TEXTURE3D
 #endif
 #if defined(SAMPLER)
     #undef SAMPLER
@@ -46,14 +52,18 @@
 #if defined(SHADER_API_D3D9) || (UNITY_VERSION < 201800 && defined(SHADER_API_GLES)) || (defined(SHADER_TARGET_SURFACE_ANALYSIS) && defined(SHADER_TARGET_SURFACE_ANALYSIS_MOJOSHADER)) || defined(SHADER_TARGET_SURFACE_ANALYSIS)
     #define SAMPLE2D(tex,samp,uv)           tex2D(tex,uv)
     #define SAMPLE2DLOD(tex,samp,uv,lod)    tex2Dlod(tex,float4(uv,0,lod))
+    #define SAMPLE3D(tex,samp,uv)           tex3D(tex,uv)
     #define TEXTURE2D(tex)                  sampler2D tex
+    #define TEXTURE3D(tex)                  sampler3D tex
     #define SAMPLER(samp)
     #define SAMPLER_IN_FUNC(samp)
     #define SAMPLER_IN(samp)
 #else
     #define SAMPLE2D(tex,samp,uv)           tex.Sample(samp,uv)
     #define SAMPLE2D_LOD(tex,samp,uv,lod)   tex.SampleLevel(samp,uv,lod)
+    #define SAMPLE3D(tex,samp,uv)           tex.Sample(samp,uv)
     #define TEXTURE2D(tex)                  Texture2D tex
+    #define TEXTURE3D(tex)                  Texture3D tex
     #define SAMPLER(samp)                   SamplerState samp
     #define SAMPLER_IN_FUNC(samp)           , SamplerState samp
     #define SAMPLER_IN(samp)                , samp
