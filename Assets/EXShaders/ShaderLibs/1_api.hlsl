@@ -1,17 +1,22 @@
 //------------------------------------------------------------------------------------------------------------------------------
 // API Macro
-#if defined(SHADER_API_D3D11_9X)
-    #define EX_VFACE(facing)
-    #define EX_VFACE_FALLBACK(facing) float facing = 1
-#else
+#if defined(SHADER_API_D3D11) || defined(SHADER_API_METAL) || defined(SHADER_API_SWITCH) || defined(SHADER_API_VULKAN) || defined(SHADER_API_XBOXONE) || defined(SHADER_API_PS4) || defined(SHADER_API_PS5) || defined(SHADER_API_GAMECORE)
+    #define EX_VFACE(facing) , bool facing : SV_IsFrontFace
+    #define EX_VFACE_COMP(facing) facing
+#elif defined(SHADER_API_GLCORE) || defined(SHADER_API_GLES) || defined(SHADER_API_GLES3)
     #define EX_VFACE(facing) , float facing : VFACE
-    #define EX_VFACE_FALLBACK(facing)
+    #define EX_VFACE_COMP(facing) facing > 0.0
+#else // defined(SHADER_API_D3D11_9X)
+    #define EX_VFACE(facing)
+    #define EX_VFACE_COMP(facing) true
 #endif
 
-#if defined(UNITY_INITIALIZE_OUTPUT)
-    #define EX_INIT_STRUCT(type, o)  UNITY_INITIALIZE_OUTPUT(type, o)
+#if defined(ZERO_INITIALIZE)
+    #define EX_INIT_STRUCT(type, o) ZERO_INITIALIZE(type, o)
+#elif defined(UNITY_INITIALIZE_OUTPUT)
+    #define EX_INIT_STRUCT(type, o) UNITY_INITIALIZE_OUTPUT(type, o)
 #else
-    #define EX_INIT_STRUCT(type, o)  o = (type)0
+    #define EX_INIT_STRUCT(type, o)
 #endif
 
 #if !defined(CBUFFER_START)
@@ -49,7 +54,7 @@
     #undef SAMPLER_IN
 #endif
 
-#if defined(SHADER_API_D3D9) || (UNITY_VERSION < 201800 && defined(SHADER_API_GLES)) || (defined(SHADER_TARGET_SURFACE_ANALYSIS) && defined(SHADER_TARGET_SURFACE_ANALYSIS_MOJOSHADER)) || defined(SHADER_TARGET_SURFACE_ANALYSIS)
+#if defined(SHADER_API_D3D9) || defined(SHADER_API_GLES) || (defined(SHADER_TARGET_SURFACE_ANALYSIS) && defined(SHADER_TARGET_SURFACE_ANALYSIS_MOJOSHADER)) || defined(SHADER_TARGET_SURFACE_ANALYSIS)
     #define SAMPLE2D(tex,samp,uv)           tex2D(tex,uv)
     #define SAMPLE2DLOD(tex,samp,uv,lod)    tex2Dlod(tex,float4(uv,0,lod))
     #define SAMPLE3D(tex,samp,uv)           tex3D(tex,uv)

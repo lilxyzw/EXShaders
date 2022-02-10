@@ -233,7 +233,7 @@ struct EXLayerDatas
 
 //------------------------------------------------------------------------------------------------------------------------------
 // Unpack v2f struct
-void EXUnpackVertexData(inout EXVertexDatas vd, v2f i, float facing)
+void EXUnpackVertexData(inout EXVertexDatas vd, v2f i)
 {
     EX_INIT_STRUCT(EXVertexDatas, vd);
 
@@ -242,7 +242,6 @@ void EXUnpackVertexData(inout EXVertexDatas vd, v2f i, float facing)
     vd.tileIndex = uint2(0,0);
 
     // Copy
-    vd.facing = facing > 0;
     #if defined(EX_V2F_POSITION_WS)
         vd.positionWS = EXToAbsolutePositionWS(i.positionWS.xyz);
         float3 rawV = EXHeadDirection(vd.positionWS);
@@ -521,10 +520,10 @@ half4 frag(v2f i EX_VFACE(facing)) : SV_Target
     UNITY_SETUP_INSTANCE_ID(i);
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
-    EX_VFACE_FALLBACK(facing);
     EXVertexDatas vd;
     EXLightDatas ld;
-    EXUnpackVertexData(vd, i, facing);
+    EXUnpackVertexData(vd, i);
+    vd.facing = EX_VFACE_COMP(facing);
     EX_POSITION_INPUTS(i.positionWS, i.positionCS, vd);
     EXUnpackLightData(ld, vd, i EX_POSITION_INPUTS_FUNC_IN);
 
@@ -751,10 +750,10 @@ void frag(v2f i EX_VFACE(facing) EX_SUBPASS_OUTPUTS)
     UNITY_SETUP_INSTANCE_ID(i);
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
-    EX_VFACE_FALLBACK(facing);
     EXVertexDatas vd;
     EXLightDatas ld;
-    EXUnpackVertexData(vd, i, facing);
+    EXUnpackVertexData(vd, i);
+    vd.facing = EX_VFACE_COMP(facing);
     EX_POSITION_INPUTS(i.positionWS, i.positionCS, vd);
 
     // Main

@@ -399,10 +399,6 @@ namespace EXShaders
                         "#pragma multi_compile_instancing",
                         "#define SHADERPASS SHADERPASS_FORWARD",
                         "#define HAS_LIGHTLOOP",
-                        "#ifndef SHADER_STAGE_FRAGMENT",
-                        "    #define SHADOW_LOW",
-                        "    #define USE_FPTL_LIGHTLIST",
-                        "#endif",
                         "#define EX_PASS_FORWARD",
                         rpinc);
                 }
@@ -420,10 +416,6 @@ namespace EXShaders
                         "#pragma multi_compile_instancing",
                         "#define SHADERPASS SHADERPASS_FORWARD",
                         "#define HAS_LIGHTLOOP",
-                        "#ifndef SHADER_STAGE_FRAGMENT",
-                        "    #define SHADOW_LOW",
-                        "    #define USE_FPTL_LIGHTLIST",
-                        "#endif",
                         "#define EX_PASS_FORWARD",
                         rpinc);
                 }
@@ -440,10 +432,6 @@ namespace EXShaders
                         "#pragma multi_compile_instancing",
                         "#define SHADERPASS SHADERPASS_FORWARD",
                         "#define HAS_LIGHTLOOP",
-                        "#ifndef SHADER_STAGE_FRAGMENT",
-                        "    #define SHADOW_LOW",
-                        "    #define USE_FPTL_LIGHTLIST",
-                        "#endif",
                         "#define EX_PASS_FORWARD",
                         rpinc);
                 }

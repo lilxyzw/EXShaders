@@ -5,6 +5,8 @@ namespace EXShaders
 {
     public class EXShadersUtil
     {
+        private const string VRC_FALLBACK_TAG = "VRCFallback";
+
         public static bool FoldoutGUI(string title, bool display, GUIStyle foldout)
         {
             Rect rect = GUILayoutUtility.GetRect(16f, 20f, foldout);
@@ -355,6 +357,100 @@ namespace EXShaders
                     blendUV1,
                     blendUV1);
             }
+        }
+
+        public static void DrawVRCFallbackGUI(Material material)
+        {
+            #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
+                string tag = material.GetTag(VRC_FALLBACK_TAG, false);
+                string[] sFallbackShaderTypes = {"Unlit", "Standard", "VertexLit", "Toon", "Particle", "Sprite", "Matcap", "MobileToon", "Hidden"};
+                string[] sFallbackRenderTypes = {"Opaque", "Cutout", "Transparent", "Fade"};
+                string[] sFallbackCullTypes = {"Default", "DoubleSided"};
+
+                int fallbackShaderType = tag.Contains("Standard")       ? 1 : 0;
+                    fallbackShaderType = tag.Contains("VertexLit")      ? 2 : fallbackShaderType;
+                    fallbackShaderType = tag.Contains("Toon")           ? 3 : fallbackShaderType;
+                    fallbackShaderType = tag.Contains("Particle")       ? 4 : fallbackShaderType;
+                    fallbackShaderType = tag.Contains("Sprite")         ? 5 : fallbackShaderType;
+                    fallbackShaderType = tag.Contains("Matcap")         ? 6 : fallbackShaderType;
+                    fallbackShaderType = tag.Contains("MobileToon")     ? 7 : fallbackShaderType;
+                    fallbackShaderType = tag.Contains("Hidden")         ? 8 : fallbackShaderType;
+
+                int fallbackRenderType = tag.Contains("Cutout")         ? 1 : 0;
+                    fallbackRenderType = tag.Contains("Transparent")    ? 2 : fallbackRenderType;
+                    fallbackRenderType = tag.Contains("Fade")           ? 3 : fallbackRenderType;
+
+                int fallbackCullType = tag.Contains("DoubleSided") ? 1 : 0;
+
+                fallbackShaderType = EditorGUILayout.Popup("Shader Type", fallbackShaderType, sFallbackShaderTypes);
+                fallbackRenderType = EditorGUILayout.Popup("Rendering Mode", fallbackRenderType, sFallbackRenderTypes);
+                fallbackCullType = EditorGUILayout.Popup("Facing", fallbackCullType, sFallbackCullTypes);
+
+                switch(fallbackShaderType)
+                {
+                    case 0: tag = "Unlit"; break;
+                    case 1: tag = "Standard"; break;
+                    case 2: tag = "VertexLit"; break;
+                    case 3: tag = "Toon"; break;
+                    case 4: tag = "Particle"; break;
+                    case 5: tag = "Sprite"; break;
+                    case 6: tag = "Matcap"; break;
+                    case 7: tag = "MobileToon"; break;
+                    case 8: tag = "Hidden"; break;
+                    default: tag = "Unlit"; break;
+                }
+                switch(fallbackRenderType)
+                {
+                    case 0: break;
+                    case 1: tag += "Cutout"; break;
+                    case 2: tag += "Transparent"; break;
+                    case 3: tag += "Fade"; break;
+                    default: break;
+                }
+                switch(fallbackCullType)
+                {
+                    case 0: break;
+                    case 1: tag += "DoubleSided"; break;
+                    default: break;
+                }
+                EditorGUILayout.LabelField("Result:", '"' + tag + '"');
+                material.SetOverrideTag(VRC_FALLBACK_TAG, tag);
+            #endif
+        }
+
+        public static void SetVRCFallback(Material material, int fallbackShaderType, int fallbackRenderType, int fallbackCullType)
+        {
+            #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
+                string tag;
+                switch(fallbackShaderType)
+                {
+                    case 0: tag = "Unlit"; break;
+                    case 1: tag = "Standard"; break;
+                    case 2: tag = "VertexLit"; break;
+                    case 3: tag = "Toon"; break;
+                    case 4: tag = "Particle"; break;
+                    case 5: tag = "Sprite"; break;
+                    case 6: tag = "Matcap"; break;
+                    case 7: tag = "MobileToon"; break;
+                    case 8: tag = "Hidden"; break;
+                    default: tag = "Unlit"; break;
+                }
+                switch(fallbackRenderType)
+                {
+                    case 0: break;
+                    case 1: tag += "Cutout"; break;
+                    case 2: tag += "Transparent"; break;
+                    case 3: tag += "Fade"; break;
+                    default: break;
+                }
+                switch(fallbackCullType)
+                {
+                    case 0: break;
+                    case 1: tag += "DoubleSided"; break;
+                    default: break;
+                }
+                material.SetOverrideTag(VRC_FALLBACK_TAG, tag);
+            #endif
         }
     }
 

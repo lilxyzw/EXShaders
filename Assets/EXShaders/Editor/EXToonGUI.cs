@@ -27,6 +27,7 @@ namespace EXShaders
         private static GUIStyle foldout = new GUIStyle();
         private static MaterialEditor m_MaterialEditor;
         private static bool isShowBase = false;
+        private static bool isShowVRCFallback = false;
         private static bool isShowOutline = false;
         private static bool isShowShadow = false;
         private static bool isShowLayers = false;
@@ -531,6 +532,14 @@ namespace EXShaders
                 m_MaterialEditor.DoubleSidedGIField();
                 m_MaterialEditor.RenderQueueField();
             }
+
+            #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
+            isShowVRCFallback = Foldout("VRChat", isShowVRCFallback);
+            if(isShowVRCFallback)
+            {
+                DrawVRCFallbackGUI(material);
+            }
+            #endif
 
             if(EditorGUI.EndChangeCheck())
             {
@@ -1359,6 +1368,7 @@ namespace EXShaders
                     material.DisableKeyword("_ALPHATEST_ON");
                     material.DisableKeyword("_ALPHABLEND_ON");
                     material.renderQueue = -1;
+                    SetVRCFallback(material, 3, 0, material.GetFloat("_EXCull") == 0 ? 1 : 0);
                     break;
                 case RenderingMode.Cutout:
                     material.SetOverrideTag("RenderType", "TransparentCutout");
@@ -1371,6 +1381,7 @@ namespace EXShaders
                     material.EnableKeyword("_ALPHATEST_ON");
                     material.DisableKeyword("_ALPHABLEND_ON");
                     material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+                    SetVRCFallback(material, 3, 1, material.GetFloat("_EXCull") == 0 ? 1 : 0);
                     break;
                 case RenderingMode.Transparent:
                     material.SetOverrideTag("RenderType", "Transparent");
@@ -1383,6 +1394,7 @@ namespace EXShaders
                     material.DisableKeyword("_ALPHATEST_ON");
                     material.EnableKeyword("_ALPHABLEND_ON");
                     material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                    SetVRCFallback(material, 3, 2, material.GetFloat("_EXCull") == 0 ? 1 : 0);
                     break;
             }
         }

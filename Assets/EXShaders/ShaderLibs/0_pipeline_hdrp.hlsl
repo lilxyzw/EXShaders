@@ -1,8 +1,13 @@
 //------------------------------------------------------------------------------------------------------------------------------
 // Libraries
-#define LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
-#if !defined(SHADOW_LOW) && !defined(SHADOW_MEDIUM) && !defined(SHADOW_HIGH)
+#if !defined(LIGHTLOOP_DISABLE_TILE_AND_CLUSTER)
+    #define LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
+#endif
+#if !defined(SHADOW_LOW) && !defined(SHADOW_MEDIUM) && !defined(SHADOW_HIGH) && !defined(SHADOW_VERY_HIGH)
     #define SHADOW_LOW
+#endif
+#if !defined(USE_FPTL_LIGHTLIST) && !defined(USE_CLUSTERED_LIGHTLIST)
+    #define USE_FPTL_LIGHTLIST
 #endif
 #if defined(SHADOW_LOW)
     #define PUNCTUAL_SHADOW_LOW
