@@ -21,6 +21,7 @@ struct EXVertexDatas
     half3x3 tbnWS;
     half3 N;
     half3 V;
+    float2 parallax;
 
     bool facing;
 

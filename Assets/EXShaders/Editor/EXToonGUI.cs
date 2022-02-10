@@ -1,7 +1,7 @@
 using System;
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using static EXShaders.EXShadersUtil;
 
 namespace EXShaders
 {
@@ -22,6 +22,7 @@ namespace EXShaders
         private static readonly string[] cullNames = {"Off","Front","Back"};
         private static readonly string[] colorMaskNames = {"None","A","B","BA","G","GA","GB","GBA","R","RA","RB","RBA","RG","RGA","RGB","RGBA"};
         private static readonly string[] layerNames = {"None","1 Layer","2 Layers","3 Layers"};
+        private static readonly string[] layerEditModeNames = {"Full","Emission","Detail","Decal","MatCap","AngelRing","Rim Light","Specular","Distance Fade"};
         private static readonly string[] layerPresetNames = {"Cancel","Emission","Detail","Decal","MatCap","AngelRing","Rim Light","Specular","Distance Fade"};
         private static GUIStyle foldout = new GUIStyle();
         private static MaterialEditor m_MaterialEditor;
@@ -35,6 +36,10 @@ namespace EXShaders
         private static bool isShowLighting = false;
         private static bool isShowStencil = false;
         private static bool isShowRendering = false;
+        private static bool isShowBlending = false;
+        private static bool isShowBlendingFA = false;
+        private static bool isShowOLBlending = false;
+        private static bool isShowOLBlendingFA = false;
 
         private static bool isShow_MainTex;
         private static bool isShow_OutlineTex;
@@ -94,6 +99,9 @@ namespace EXShaders
         private MaterialProperty _Layer1stParams;
         private MaterialProperty _Layer2ndParams;
         private MaterialProperty _Layer3rdParams;
+        private MaterialProperty _Layer1stParams2;
+        private MaterialProperty _Layer2ndParams2;
+        private MaterialProperty _Layer3rdParams2;
         private MaterialProperty _Layer1stBlink;
         private MaterialProperty _Layer2ndBlink;
         private MaterialProperty _Layer3rdBlink;
@@ -109,6 +117,9 @@ namespace EXShaders
 
         private MaterialProperty _Mode;
         private MaterialProperty _Layers;
+        private MaterialProperty _Layer1stEditMode;
+        private MaterialProperty _Layer2ndEditMode;
+        private MaterialProperty _Layer3rdEditMode;
         private MaterialProperty _Cutoff;
         private MaterialProperty _MatCapNormal;
         private MaterialProperty _NormalScale;
@@ -198,10 +209,10 @@ namespace EXShaders
 
             FindProperties(props);
             m_MaterialEditor = materialEditor;
-            var materials = m_MaterialEditor.targets.Select(target => target as Material).ToArray();
+            Material material = materialEditor.target as Material;
 
             EditorGUI.BeginChangeCheck();
-            DrawRenderingMode();
+            bool renderingModeChanged = DrawRenderingMode();
 
             isShowBase = Foldout("Base", isShowBase);
             if(isShowBase)
@@ -272,62 +283,63 @@ namespace EXShaders
             isShowLayers = Foldout("Layers", isShowLayers);
             if(isShowLayers)
             {
+                LayerDatas layerDatas1st = new LayerDatas(){
+                    isXY = false,
+                    _UVScroll           = _UVScrollLML1,
+                    _LayerEditMode      = _Layer1stEditMode,
+                    _LayerColorTex      = _Layer1stColorTex,
+                    _LayerColor         = _Layer1stColor,
+                    _LayerUV01Blend     = _Layer1stUV01Blend,
+                    _LayerUVMSBlend     = _Layer1stUVMSBlend,
+                    _LayerParams        = _Layer1stParams,
+                    _LayerParams2       = _Layer1stParams2,
+                    _LayerBlink         = _Layer1stBlink,
+                    _LayerFadeParams    = _Layer1stFadeParams,
+                    _LayerRim           = _Layer1stRim,
+                    _LayerSpecular      = _Layer1stSpecular,
+                    _LayerBlendMode     = _Layer1stBlendMode
+                };
+                LayerDatas layerDatas2nd = new LayerDatas(){
+                    isXY = true,
+                    _UVScroll           = _UVScrollLML1,
+                    _LayerEditMode      = _Layer2ndEditMode,
+                    _LayerColorTex      = _Layer2ndColorTex,
+                    _LayerColor         = _Layer2ndColor,
+                    _LayerUV01Blend     = _Layer2ndUV01Blend,
+                    _LayerUVMSBlend     = _Layer2ndUVMSBlend,
+                    _LayerParams        = _Layer2ndParams,
+                    _LayerParams2       = _Layer2ndParams2,
+                    _LayerBlink         = _Layer2ndBlink,
+                    _LayerFadeParams    = _Layer2ndFadeParams,
+                    _LayerRim           = _Layer2ndRim,
+                    _LayerSpecular      = _Layer2ndSpecular,
+                    _LayerBlendMode     = _Layer2ndBlendMode
+                };
+                LayerDatas layerDatas3rd = new LayerDatas(){
+                    isXY = false,
+                    _UVScroll           = _UVScrollLML1,
+                    _LayerEditMode      = _Layer3rdEditMode,
+                    _LayerColorTex      = _Layer3rdColorTex,
+                    _LayerColor         = _Layer3rdColor,
+                    _LayerUV01Blend     = _Layer3rdUV01Blend,
+                    _LayerUVMSBlend     = _Layer3rdUVMSBlend,
+                    _LayerParams        = _Layer3rdParams,
+                    _LayerParams2       = _Layer3rdParams2,
+                    _LayerBlink         = _Layer3rdBlink,
+                    _LayerFadeParams    = _Layer3rdFadeParams,
+                    _LayerRim           = _Layer3rdRim,
+                    _LayerSpecular      = _Layer3rdSpecular,
+                    _LayerBlendMode     = _Layer3rdBlendMode
+                };
+
                 DrawLayers();
                 GUI.enabled = _Layers.floatValue > 0;
                 DrawTextureAndUV(ref isShow_LayerMaskTex, new GUIContent("Layer Mask", "1st (R), 2nd (G), 3rd (B)"), _LayerMaskTex, _UVScrollLML1, true);
-
-                EditorGUILayout.LabelField("1st Layer", EditorStyles.boldLabel);
-                DrawLayer(
-                    ref isShow_Layer1stColorTex,
-                    _Layer1stColorTex,
-                    _Layer1stColor,
-                    _UVScrollLML1,
-                    false,
-                    _Layer1stUV01Blend,
-                    _Layer1stUVMSBlend,
-                    _Layer1stBlink,
-                    _Layer1stParams,
-                    _Layer1stFadeParams,
-                    _Layer1stRim,
-                    _Layer1stSpecular,
-                    _Layer1stBlendMode
-                );
-
+                DrawLayer(ref isShow_Layer1stColorTex, "1st Layer", layerDatas1st);
                 GUI.enabled = _Layers.floatValue > 1;
-                EditorGUILayout.LabelField("2nd Layer", EditorStyles.boldLabel);
-                DrawLayer(
-                    ref isShow_Layer2ndColorTex,
-                    _Layer2ndColorTex,
-                    _Layer2ndColor,
-                    _UVScrollL2L3,
-                    true,
-                    _Layer2ndUV01Blend,
-                    _Layer2ndUVMSBlend,
-                    _Layer2ndBlink,
-                    _Layer2ndParams,
-                    _Layer2ndFadeParams,
-                    _Layer2ndRim,
-                    _Layer2ndSpecular,
-                    _Layer2ndBlendMode
-                );
-
+                DrawLayer(ref isShow_Layer2ndColorTex, "2nd Layer", layerDatas2nd);
                 GUI.enabled = _Layers.floatValue > 2;
-                EditorGUILayout.LabelField("3rd Layer", EditorStyles.boldLabel);
-                DrawLayer(
-                    ref isShow_Layer3rdColorTex,
-                    _Layer3rdColorTex,
-                    _Layer3rdColor,
-                    _UVScrollL2L3,
-                    false,
-                    _Layer3rdUV01Blend,
-                    _Layer3rdUVMSBlend,
-                    _Layer3rdBlink,
-                    _Layer3rdParams,
-                    _Layer3rdFadeParams,
-                    _Layer3rdRim,
-                    _Layer3rdSpecular,
-                    _Layer3rdBlendMode
-                );
+                DrawLayer(ref isShow_Layer3rdColorTex, "3rd Layer", layerDatas3rd);
                 GUI.enabled = true;
             }
 
@@ -335,38 +347,19 @@ namespace EXShaders
             isShowRim = Foldout("Rim Light (for Layers)", isShowRim) && GUI.enabled;
             if(isShowRim)
             {
-                EditorGUILayout.LabelField("1st Rim", EditorStyles.boldLabel);
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                m_MaterialEditor.ShaderProperty(_Rim1stColor, "Color");
-                DrawRim1stFresnel(_RimParams);
-                DrawRemap(_Rim1stParams);
-                DrawRimDirectionParams(_Rim1stParams);
-                EditorGUILayout.EndVertical();
-
-                EditorGUILayout.LabelField("2nd Rim", EditorStyles.boldLabel);
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                m_MaterialEditor.ShaderProperty(_Rim2ndColor, "Color");
-                DrawRim2ndFresnel(_RimParams);
-                DrawRemap(_Rim2ndParams);
-                DrawRimDirectionParams(_Rim2ndParams);
-                EditorGUILayout.EndVertical();
-                DrawRimParams(_RimParams);
-
+                DoRimGUI();
             }
 
             isShowSpecular = Foldout("Specular (for Layers)", isShowSpecular) && GUI.enabled;
             if(isShowSpecular)
             {
-                DrawRemap(_SpecularParams);
-                DrawSpecularNS(_SpecularParams);
+                DoSpecularGUI();
             }
 
             isShowMatCap = Foldout("MatCap UV (for Layers)", isShowMatCap) && GUI.enabled;
             if(isShowMatCap)
             {
-                m_MaterialEditor.ShaderProperty(_MatCapNormal, "Normal Strength");
-                DrawToggle(_MatCapStabilize, "Stabilize");
-                DrawToggle(_MatCapPerspective, "Perspective");
+                DoMatCapGUI();
             }
             GUI.enabled = true;
 
@@ -379,7 +372,69 @@ namespace EXShaders
             isShowStencil = Foldout("Stencil", isShowStencil);
             if(isShowStencil)
             {
-                m_MaterialEditor.RenderQueueField();
+                EditorGUILayout.BeginHorizontal();
+                if(GUILayout.Button("Set Writer"))
+                {
+                    _EXStencilRef.floatValue = 1;
+                    _EXStencilReadMask.floatValue = 255.0f;
+                    _EXStencilWriteMask.floatValue = 255.0f;
+                    _EXStencilComp.floatValue = (float)UnityEngine.Rendering.CompareFunction.Always;
+                    _EXStencilPass.floatValue = (float)UnityEngine.Rendering.StencilOp.Replace;
+                    _EXStencilFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXStencilZFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilRef.floatValue = 1;
+                    _EXOLStencilReadMask.floatValue = 255.0f;
+                    _EXOLStencilWriteMask.floatValue = 255.0f;
+                    _EXOLStencilComp.floatValue = (float)UnityEngine.Rendering.CompareFunction.Always;
+                    _EXOLStencilPass.floatValue = (float)UnityEngine.Rendering.StencilOp.Replace;
+                    _EXOLStencilFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilZFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    if(_Mode.floatValue == 2.0f)      material.renderQueue = 3001;
+                    else if(_Mode.floatValue == 1.0f) material.renderQueue = 2451;
+                    else                              material.renderQueue = 2451;
+                }
+                if(GUILayout.Button("Set Reader"))
+                {
+                    _EXStencilRef.floatValue = 1;
+                    _EXStencilReadMask.floatValue = 255.0f;
+                    _EXStencilWriteMask.floatValue = 255.0f;
+                    _EXStencilComp.floatValue = (float)UnityEngine.Rendering.CompareFunction.NotEqual;
+                    _EXStencilPass.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXStencilFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXStencilZFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilRef.floatValue = 1;
+                    _EXOLStencilReadMask.floatValue = 255.0f;
+                    _EXOLStencilWriteMask.floatValue = 255.0f;
+                    _EXOLStencilComp.floatValue = (float)UnityEngine.Rendering.CompareFunction.NotEqual;
+                    _EXOLStencilPass.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilZFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    if(_Mode.floatValue == 2.0f)      material.renderQueue = 3002;
+                    else if(_Mode.floatValue == 1.0f) material.renderQueue = 2452;
+                    else                              material.renderQueue = 2452;
+                }
+                if(GUILayout.Button("Reset"))
+                {
+                    _EXStencilRef.floatValue = 0;
+                    _EXStencilReadMask.floatValue = 255.0f;
+                    _EXStencilWriteMask.floatValue = 255.0f;
+                    _EXStencilComp.floatValue = (float)UnityEngine.Rendering.CompareFunction.Always;
+                    _EXStencilPass.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXStencilFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXStencilZFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilRef.floatValue = 0;
+                    _EXOLStencilReadMask.floatValue = 255.0f;
+                    _EXOLStencilWriteMask.floatValue = 255.0f;
+                    _EXOLStencilComp.floatValue = (float)UnityEngine.Rendering.CompareFunction.Always;
+                    _EXOLStencilPass.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    _EXOLStencilZFail.floatValue = (float)UnityEngine.Rendering.StencilOp.Keep;
+                    if(_Mode.floatValue == 2.0f)      material.renderQueue = 3000;
+                    else if(_Mode.floatValue == 1.0f) material.renderQueue = 2450;
+                    else                              material.renderQueue = -1;
+                }
+                EditorGUILayout.EndHorizontal();
+
                 EditorGUILayout.LabelField("Main", EditorStyles.boldLabel);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 DrawStencilRange(_EXStencilRef, "Ref");
@@ -401,6 +456,8 @@ namespace EXShaders
                 DrawEnum(_EXOLStencilFail, "Fail", stencilOpNames);
                 DrawEnum(_EXOLStencilZFail, "ZFail", stencilOpNames);
                 EditorGUILayout.EndVertical();
+
+                m_MaterialEditor.RenderQueueField();
             }
 
             isShowRendering = Foldout("Rendering", isShowRendering);
@@ -409,16 +466,6 @@ namespace EXShaders
                 EditorGUILayout.LabelField("Main", EditorStyles.boldLabel);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 DrawEnum(_EXCull, "Cull Mode", cullNames);
-                DrawEnum(_EXSrcBlend, "SrcBlend", blendModeNames);
-                DrawEnum(_EXDstBlend, "DstBlend", blendModeNames);
-                DrawEnum(_EXSrcBlendAlpha, "SrcBlendAlpha", blendModeNames);
-                DrawEnum(_EXDstBlendAlpha, "DstBlendAlpha", blendModeNames);
-                DrawEnum(_EXBlendOp, "BlendOp", blendOpNames);
-                DrawEnum(_EXBlendOpAlpha, "BlendOpAlpha", blendOpNames);
-                DrawEnum(_EXSrcBlendFA, "SrcBlendFA", blendModeNames);
-                DrawEnum(_EXDstBlendFA, "DstBlendFA", blendModeNames);
-                DrawEnum(_EXBlendOpFA, "BlendOpFA", blendOpNames);
-                DrawEnum(_EXBlendOpAlphaFA, "BlendOpAlphaFA", blendOpNames);
                 DrawToggle(_EXZClip, "ZClip");
                 DrawToggle(_EXZWrite, "ZWrite");
                 DrawEnum(_EXZTest, "ZTest", compareFunctionNames);
@@ -426,21 +473,31 @@ namespace EXShaders
                 m_MaterialEditor.ShaderProperty(_EXOffsetUnits, "OffsetUnits");
                 DrawEnum(_EXColorMask, "ColorMask", colorMaskNames);
                 DrawToggle(_EXAlphaToMask, "AlphaToMask");
+                EditorGUI.indentLevel++;
+                isShowBlending = EditorGUILayout.Foldout(isShowBlending, "Forward Blending");
+                if(isShowBlending)
+                {
+                    DrawEnum(_EXSrcBlend, "SrcBlend", blendModeNames);
+                    DrawEnum(_EXDstBlend, "DstBlend", blendModeNames);
+                    DrawEnum(_EXSrcBlendAlpha, "SrcBlendAlpha", blendModeNames);
+                    DrawEnum(_EXDstBlendAlpha, "DstBlendAlpha", blendModeNames);
+                    DrawEnum(_EXBlendOp, "BlendOp", blendOpNames);
+                    DrawEnum(_EXBlendOpAlpha, "BlendOpAlpha", blendOpNames);
+                }
+                isShowBlendingFA = EditorGUILayout.Foldout(isShowBlendingFA, "ForwardAdd Blending");
+                if(isShowBlendingFA)
+                {
+                    DrawEnum(_EXSrcBlendFA, "SrcBlendFA", blendModeNames);
+                    DrawEnum(_EXDstBlendFA, "DstBlendFA", blendModeNames);
+                    DrawEnum(_EXBlendOpFA, "BlendOpFA", blendOpNames);
+                    DrawEnum(_EXBlendOpAlphaFA, "BlendOpAlphaFA", blendOpNames);
+                }
+                EditorGUI.indentLevel--;
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.LabelField("Outline", EditorStyles.boldLabel);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 DrawEnum(_EXOLCull, "Cull Mode", cullNames);
-                DrawEnum(_EXOLSrcBlend, "SrcBlend", blendModeNames);
-                DrawEnum(_EXOLDstBlend, "DstBlend", blendModeNames);
-                DrawEnum(_EXOLSrcBlendAlpha, "SrcBlendAlpha", blendModeNames);
-                DrawEnum(_EXOLDstBlendAlpha, "DstBlendAlpha", blendModeNames);
-                DrawEnum(_EXOLBlendOp, "BlendOp", blendOpNames);
-                DrawEnum(_EXOLBlendOpAlpha, "BlendOpAlpha", blendOpNames);
-                DrawEnum(_EXOLSrcBlendFA, "SrcBlendFA", blendModeNames);
-                DrawEnum(_EXOLDstBlendFA, "DstBlendFA", blendModeNames);
-                DrawEnum(_EXOLBlendOpFA, "BlendOpFA", blendOpNames);
-                DrawEnum(_EXOLBlendOpAlphaFA, "BlendOpAlphaFA", blendOpNames);
                 DrawToggle(_EXOLZClip, "ZClip");
                 DrawToggle(_EXOLZWrite, "ZWrite");
                 DrawEnum(_EXOLZTest, "ZTest", compareFunctionNames);
@@ -448,6 +505,26 @@ namespace EXShaders
                 m_MaterialEditor.ShaderProperty(_EXOLOffsetUnits, "OffsetUnits");
                 DrawEnum(_EXOLColorMask, "ColorMask", colorMaskNames);
                 DrawToggle(_EXOLAlphaToMask, "AlphaToMask");
+                EditorGUI.indentLevel++;
+                isShowOLBlending = EditorGUILayout.Foldout(isShowOLBlending, "Forward Blending");
+                if(isShowOLBlending)
+                {
+                    DrawEnum(_EXOLSrcBlend, "SrcBlend", blendModeNames);
+                    DrawEnum(_EXOLDstBlend, "DstBlend", blendModeNames);
+                    DrawEnum(_EXOLSrcBlendAlpha, "SrcBlendAlpha", blendModeNames);
+                    DrawEnum(_EXOLDstBlendAlpha, "DstBlendAlpha", blendModeNames);
+                    DrawEnum(_EXOLBlendOp, "BlendOp", blendOpNames);
+                    DrawEnum(_EXOLBlendOpAlpha, "BlendOpAlpha", blendOpNames);
+                }
+                isShowOLBlendingFA = EditorGUILayout.Foldout(isShowOLBlendingFA, "ForwardAdd Blending");
+                if(isShowOLBlendingFA)
+                {
+                    DrawEnum(_EXOLSrcBlendFA, "SrcBlendFA", blendModeNames);
+                    DrawEnum(_EXOLDstBlendFA, "DstBlendFA", blendModeNames);
+                    DrawEnum(_EXOLBlendOpFA, "BlendOpFA", blendOpNames);
+                    DrawEnum(_EXOLBlendOpAlphaFA, "BlendOpAlphaFA", blendOpNames);
+                }
+                EditorGUI.indentLevel--;
                 EditorGUILayout.EndVertical();
 
                 m_MaterialEditor.EnableInstancingField();
@@ -457,8 +534,7 @@ namespace EXShaders
 
             if(EditorGUI.EndChangeCheck())
             {
-                foreach(var obj in _Mode.targets)
-                    MaterialChanged((Material)obj);
+                foreach(var obj in _Mode.targets) MaterialChanged((Material)obj, renderingModeChanged);
             }
         }
 
@@ -506,6 +582,9 @@ namespace EXShaders
             _Layer1stParams = FindProperty("_Layer1stParams", props, false);
             _Layer2ndParams = FindProperty("_Layer2ndParams", props, false);
             _Layer3rdParams = FindProperty("_Layer3rdParams", props, false);
+            _Layer1stParams2 = FindProperty("_Layer1stParams2", props, false);
+            _Layer2ndParams2 = FindProperty("_Layer2ndParams2", props, false);
+            _Layer3rdParams2 = FindProperty("_Layer3rdParams2", props, false);
             _Layer1stBlink = FindProperty("_Layer1stBlink", props, false);
             _Layer2ndBlink = FindProperty("_Layer2ndBlink", props, false);
             _Layer3rdBlink = FindProperty("_Layer3rdBlink", props, false);
@@ -520,6 +599,9 @@ namespace EXShaders
             _Layer3rdFadeParams = FindProperty("_Layer3rdFadeParams", props, false);
             _Mode = FindProperty("_Mode", props, false);
             _Layers = FindProperty("_Layers", props, false);
+            _Layer1stEditMode = FindProperty("_Layer1stEditMode", props, false);
+            _Layer2ndEditMode = FindProperty("_Layer2ndEditMode", props, false);
+            _Layer3rdEditMode = FindProperty("_Layer3rdEditMode", props, false);
             _Cutoff = FindProperty("_Cutoff", props, false);
             _MatCapNormal = FindProperty("_MatCapNormal", props, false);
             _NormalScale = FindProperty("_NormalScale", props, false);
@@ -594,68 +676,27 @@ namespace EXShaders
 
         //------------------------------------------------------------------------------------------------------------------------------
         // Base
-        private bool Foldout(string title, bool display)
+        private static bool Foldout(string title, bool display)
         {
-            Rect rect = GUILayoutUtility.GetRect(16f, 20f, foldout);
-			rect.width += 8f;
-			rect.x -= 8f;
-            GUI.Box(rect, new GUIContent(title, ""), foldout);
-
-            Event e = Event.current;
-
-            Rect toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
-            if(e.type == EventType.Repaint) {
-                EditorStyles.foldout.Draw(toggleRect, false, false, display, false);
-            }
-
-            rect.width -= 24;
-            if(e.type == EventType.MouseDown && rect.Contains(e.mousePosition)) {
-                display = !display;
-                e.Use();
-            }
-
-            return display;
+            return FoldoutGUI(title, display, foldout);
         }
 
-        private static Vector2 Vec2Field(string label, Vector2 vec, bool fixForScroll = false)
+        private void DrawFoldoutTexture(ref bool isShow, GUIContent guiContent, MaterialProperty tex, MaterialProperty col)
         {
-            if(fixForScroll) GUILayout.Space(-2);
-
-            const float indentPerLevel = 15;
-            int indentLevel = EditorGUI.indentLevel;
-            float labelWidth = EditorGUIUtility.labelWidth;
-            float lineHeight = EditorGUIUtility.singleLineHeight;
-
-            EditorGUI.indentLevel = 0;
-
-            Rect position = EditorGUILayout.GetControlRect(true, lineHeight, EditorStyles.layerMaskField);
-            float labelStartX = position.x + indentLevel * indentPerLevel;
-            float valueStartX = position.x + labelWidth;
-            Rect labelRect = new Rect(labelStartX, position.y, labelWidth, position.height);
-            Rect valueRect = new Rect(valueStartX, position.y, position.width - labelWidth, position.height);
-            EditorGUI.PrefixLabel(labelRect, new GUIContent(label));
-            vec = EditorGUI.Vector2Field(valueRect, GUIContent.none, vec);
-
-            EditorGUI.indentLevel = indentLevel;
-
-            return vec;
+            DrawFoldoutTextureGUI(ref isShow, guiContent, tex, col, m_MaterialEditor);
         }
 
-        private void DrawToggle(MaterialProperty prop, string label)
+        private void DrawTextureAndUV(ref bool isShow, GUIContent guiContent, MaterialProperty tex, MaterialProperty col, MaterialProperty scroll, bool isScrollXY)
         {
-            bool value = prop.floatValue != 0.0f;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            value = EditorGUILayout.Toggle(label, value);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                prop.floatValue = value ? 1.0f : 0.0f;
-            }
+            DrawTextureAndUVGUI(ref isShow, guiContent, tex, col, scroll, isScrollXY, m_MaterialEditor);
         }
 
-        private void DrawRenderingMode()
+        private void DrawTextureAndUV(ref bool isShow, GUIContent guiContent, MaterialProperty tex, MaterialProperty scroll, bool isScrollXY)
+        {
+            DrawTextureAndUVGUI(ref isShow, guiContent, tex, scroll, isScrollXY, m_MaterialEditor);
+        }
+
+        private bool DrawRenderingMode()
         {
             int mode = (int)_Mode.floatValue;
 
@@ -663,11 +704,14 @@ namespace EXShaders
             EditorGUI.showMixedValue = _Mode.hasMixedValue;
             mode = EditorGUILayout.Popup("Rendering Mode", mode, blendNames);
             EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
+            bool changed = EditorGUI.EndChangeCheck();
+            if(changed)
             {
                 m_MaterialEditor.RegisterPropertyChangeUndo("Rendering Mode");
                 _Mode.floatValue = mode;
             }
+
+            return changed;
         }
 
         private void DrawLightParams(MaterialProperty prop)
@@ -690,84 +734,6 @@ namespace EXShaders
             }
         }
 
-        private void DrawScrollXY(MaterialProperty prop)
-        {
-            Vector2 scroll = new Vector2(prop.vectorValue.x, prop.vectorValue.y);
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            scroll = Vec2Field("Scroll", scroll, true);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                prop.vectorValue = new Vector4(
-                    scroll.x,
-                    scroll.y,
-                    prop.vectorValue.z,
-                    prop.vectorValue.w);
-            }
-        }
-
-        private void DrawScrollZW(MaterialProperty prop)
-        {
-            Vector2 scroll = new Vector2(prop.vectorValue.z, prop.vectorValue.w);
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            scroll = Vec2Field("Scroll", scroll, true);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                prop.vectorValue = new Vector4(
-                    prop.vectorValue.x,
-                    prop.vectorValue.y,
-                    scroll.x,
-                    scroll.y);
-            }
-        }
-
-        private void DrawRemap(MaterialProperty prop)
-        {
-            float blur = 1.0f / prop.vectorValue.x;
-            float border = -prop.vectorValue.y / prop.vectorValue.x;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            border = EditorGUILayout.Slider("Border", border, -1.1f, 1.1f);
-            blur = EditorGUILayout.Slider("Blur", blur, -1.0f, 1.0f);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                if(blur == 0.0f) blur += 0.001f;
-                prop.vectorValue = new Vector4(
-                    1.0f / blur,
-                    -border / blur,
-                    prop.vectorValue.z,
-                    prop.vectorValue.w);
-            }
-        }
-
-        private void DrawRemapZW(MaterialProperty prop, string label)
-        {
-            float blur = 1.0f / prop.vectorValue.z;
-            float border = -prop.vectorValue.w / prop.vectorValue.z;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            border = EditorGUILayout.Slider(label + " Border", border, -1.1f, 1.1f);
-            blur = EditorGUILayout.Slider(label + " Blur", blur, -1.0f, 1.0f);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                if(blur == 0.0f) blur += 0.001f;
-                prop.vectorValue = new Vector4(
-                    prop.vectorValue.x,
-                    prop.vectorValue.y,
-                    1.0f / blur,
-                    -border / blur);
-            }
-        }
-
         private void DrawShadowParams2(MaterialProperty prop)
         {
             float normal = prop.vectorValue.x;
@@ -787,79 +753,6 @@ namespace EXShaders
                     receive,
                     boost,
                     prop.vectorValue.w);
-            }
-        }
-
-        private void DrawEnum(MaterialProperty prop, string label, string[] names)
-        {
-            int value = (int)prop.floatValue;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            value = EditorGUILayout.Popup(label, value, names);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                prop.floatValue = value;
-            }
-        }
-
-        private void DrawFoldoutTextureGUI(ref bool isShow, GUIContent guiContent, MaterialProperty tex, MaterialProperty col)
-        {
-            EditorGUI.indentLevel++;
-            Rect rect = m_MaterialEditor.TexturePropertySingleLine(guiContent, tex, col);
-            EditorGUI.indentLevel--;
-            rect.x += 10;
-            isShow = EditorGUI.Foldout(rect, isShow, "");
-        }
-
-        private void DrawTextureAndUV(ref bool isShow, GUIContent guiContent, MaterialProperty tex, MaterialProperty col, MaterialProperty scroll, bool isXY)
-        {
-            EditorGUI.indentLevel++;
-            Rect rect = m_MaterialEditor.TexturePropertySingleLine(guiContent, tex, col);
-            EditorGUI.indentLevel--;
-            rect.x += 10;
-            isShow = EditorGUI.Foldout(rect, isShow, "");
-
-            if(isShow)
-            {
-                EditorGUI.indentLevel++;
-                m_MaterialEditor.TextureScaleOffsetProperty(tex);
-                if(isXY) DrawScrollXY(scroll);
-                else     DrawScrollZW(scroll);
-                EditorGUI.indentLevel--;
-            }
-        }
-
-        private void DrawTextureAndUV(ref bool isShow, GUIContent guiContent, MaterialProperty tex, MaterialProperty scroll, bool isXY)
-        {
-            EditorGUI.indentLevel++;
-            Rect rect = m_MaterialEditor.TexturePropertySingleLine(guiContent, tex);
-            EditorGUI.indentLevel--;
-            rect.x += 10;
-            isShow = EditorGUI.Foldout(rect, isShow, "");
-
-            if(isShow)
-            {
-                EditorGUI.indentLevel++;
-                m_MaterialEditor.TextureScaleOffsetProperty(tex);
-                if(isXY) DrawScrollXY(scroll);
-                else     DrawScrollZW(scroll);
-                EditorGUI.indentLevel--;
-            }
-        }
-
-        private void DrawStencilRange(MaterialProperty prop, string label)
-        {
-            int value = (int)prop.floatValue;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            value = EditorGUILayout.IntSlider(label, value, 0, 255);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                prop.floatValue = value;
             }
         }
 
@@ -939,6 +832,26 @@ namespace EXShaders
             }
         }
 
+        private void DoRimGUI()
+        {
+            EditorGUILayout.LabelField("1st Rim", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            m_MaterialEditor.ShaderProperty(_Rim1stColor, "Color");
+            DrawRim1stFresnel(_RimParams);
+            DrawRemap(_Rim1stParams);
+            DrawRimDirectionParams(_Rim1stParams);
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.LabelField("2nd Rim", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            m_MaterialEditor.ShaderProperty(_Rim2ndColor, "Color");
+            DrawRim2ndFresnel(_RimParams);
+            DrawRemap(_Rim2ndParams);
+            DrawRimDirectionParams(_Rim2ndParams);
+            EditorGUILayout.EndVertical();
+            DrawRimParams(_RimParams);
+        }
+
         //------------------------------------------------------------------------------------------------------------------------------
         // Specular
         private void DrawSpecularNS(MaterialProperty prop)
@@ -961,8 +874,41 @@ namespace EXShaders
             }
         }
 
+        private void DoSpecularGUI()
+        {
+            DrawRemap(_SpecularParams);
+            DrawSpecularNS(_SpecularParams);
+        }
+
+        //------------------------------------------------------------------------------------------------------------------------------
+        // MatCap
+        private void DoMatCapGUI()
+        {
+            m_MaterialEditor.ShaderProperty(_MatCapNormal, "Normal Strength");
+            DrawToggle(_MatCapStabilize, "Stabilize");
+            DrawToggle(_MatCapPerspective, "Perspective");
+        }
+
         //------------------------------------------------------------------------------------------------------------------------------
         // Layer
+        private struct LayerDatas
+        {
+            public bool isXY;
+            public MaterialProperty _UVScroll;
+            public MaterialProperty _LayerEditMode;
+            public MaterialProperty _LayerColorTex;
+            public MaterialProperty _LayerColor;
+            public MaterialProperty _LayerUV01Blend;
+            public MaterialProperty _LayerUVMSBlend;
+            public MaterialProperty _LayerParams;
+            public MaterialProperty _LayerParams2;
+            public MaterialProperty _LayerBlink;
+            public MaterialProperty _LayerFadeParams;
+            public MaterialProperty _LayerRim;
+            public MaterialProperty _LayerSpecular;
+            public MaterialProperty _LayerBlendMode;
+        };
+
         private void DrawLayers()
         {
             int layers = (int)_Layers.floatValue;
@@ -978,75 +924,56 @@ namespace EXShaders
             }
         }
 
-        private void DrawBlink(MaterialProperty prop)
-        {
-            float strength = prop.vectorValue.x;
-            float type = prop.vectorValue.y;
-            float speed = prop.vectorValue.z / Mathf.PI;
-            float offset = prop.vectorValue.w / Mathf.PI;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            strength = EditorGUILayout.Slider("Blink Strength", strength, 0.0f, 1.0f);
-            if(strength != 0.0f)
-            {
-                EditorGUI.indentLevel++;
-                type    = EditorGUILayout.Toggle("Blink Type", type > 0.5f) ? 1.0f : 0.0f;
-                speed   = EditorGUILayout.FloatField("Blink Speed", speed);
-                offset  = EditorGUILayout.FloatField("Blink Delay", offset);
-                EditorGUI.indentLevel--;
-            }
-            EditorGUI.showMixedValue = false;
-
-            if(EditorGUI.EndChangeCheck())
-            {
-                prop.vectorValue = new Vector4(strength, type, speed * Mathf.PI, offset * Mathf.PI);
-            }
-        }
-
-        private void DrawLayerParams(MaterialProperty prop)
+        private void DrawLayerParams(MaterialProperty prop, bool drawLighting, bool drawInvLighting, bool drawLightmask, bool drawShadowmask)
         {
             float lighting = prop.vectorValue.x;
-            float shadowmask = prop.vectorValue.y;
-            bool clip = prop.vectorValue.z != 0.0f;
-            bool fade = prop.vectorValue.w != 0.0f;
+            float invlighting = prop.vectorValue.y;
+            float lightmask = prop.vectorValue.z;
+            float shadowmask = prop.vectorValue.w;
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.showMixedValue = prop.hasMixedValue;
-            lighting = EditorGUILayout.Slider("Lighting", lighting, 0.0f, 1.0f);
-            shadowmask = EditorGUILayout.Slider("Shadow Mask", shadowmask, 0.0f, 1.0f);
-            clip = EditorGUILayout.Toggle("Clip UV", clip);
-            fade = EditorGUILayout.Toggle("Distance Fade", fade);
+            if(drawLighting)    lighting = EditorGUILayout.Slider("Lighting", lighting, 0.0f, 1.0f);
+            if(drawInvLighting) invlighting = EditorGUILayout.Slider("Inverse Lighting", invlighting, 0.0f, 1.0f);
+            if(drawLightmask)   lightmask = EditorGUILayout.Slider("Disable in lit", lightmask, 0.0f, 1.0f);
+            if(drawShadowmask)  shadowmask = EditorGUILayout.Slider("Disable in shadow", shadowmask, 0.0f, 1.0f);
             EditorGUI.showMixedValue = false;
             if(EditorGUI.EndChangeCheck())
             {
                 prop.vectorValue = new Vector4(
                     lighting,
-                    shadowmask,
+                    invlighting,
+                    lightmask,
+                    shadowmask);
+            }
+        }
+
+        private void DrawLayerParams2(MaterialProperty prop, bool drawParallax, bool drawEmpty, bool drawClip, bool drawDistance)
+        {
+            float parallax = prop.vectorValue.x;
+            float empty = prop.vectorValue.y;
+            bool clip = prop.vectorValue.z != 0.0f;
+            bool dist = prop.vectorValue.w != 0.0f;
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            if(drawParallax)    parallax = EditorGUILayout.Slider("Parallax", parallax, -1.0f, 1.0f);
+            if(drawClip)        clip = EditorGUILayout.Toggle("UV Clip", clip);
+            if(drawDistance)    dist = EditorGUILayout.Toggle("Distance Fade", dist);
+            EditorGUI.showMixedValue = false;
+            if(EditorGUI.EndChangeCheck())
+            {
+                prop.vectorValue = new Vector4(
+                    parallax,
+                    empty,
                     clip ? 1.0f : 0.0f,
-                    fade ? 1.0f : 0.0f);
+                    dist ? 1.0f : 0.0f);
             }
         }
 
         private void DrawLayerAlphaRemap(MaterialProperty prop)
         {
-            float blur = 1.0f / prop.vectorValue.x;
-            float border = -prop.vectorValue.y / prop.vectorValue.x;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            border = EditorGUILayout.Slider("Alpha Border", border, -1.1f, 1.1f);
-            blur = EditorGUILayout.Slider("Alpha Blur", blur, -1.0f, 1.0f);
-            EditorGUI.showMixedValue = false;
-            if(EditorGUI.EndChangeCheck())
-            {
-                if(blur == 0.0f) blur += 0.001f;
-                prop.vectorValue = new Vector4(
-                    1.0f / blur,
-                    -border / blur,
-                    prop.vectorValue.z,
-                    prop.vectorValue.w);
-            }
+            DrawRemap(prop, "Alpha");
         }
 
         private void DrawLayerDistanceFadeRemap(MaterialProperty prop)
@@ -1070,185 +997,350 @@ namespace EXShaders
             }
         }
 
-        private void DrawUVBlend(MaterialProperty prop, string label1, string label2)
+        private void DrawAngelRingUV(MaterialProperty uv01, MaterialProperty uvms)
         {
-            Vector2 scale1 = new Vector2(prop.vectorValue.x, prop.vectorValue.y);
-            Vector2 scale2 = new Vector2(prop.vectorValue.z, prop.vectorValue.w);
+            float blendUV1 = uv01.vectorValue.w;
 
             EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            scale1 = Vec2Field(label1, scale1);
-            scale2 = Vec2Field(label2, scale2);
+            EditorGUI.showMixedValue = uv01.hasMixedValue || uvms.hasMixedValue;
+            blendUV1 = EditorGUILayout.Slider("BlendUV1", blendUV1, 0.0f, 1.0f);
             EditorGUI.showMixedValue = false;
             if(EditorGUI.EndChangeCheck())
             {
-                prop.vectorValue = new Vector4(
-                    scale1.x,
-                    scale1.y,
-                    scale2.x,
-                    scale2.y);
+                uv01.vectorValue = new Vector4(
+                    uv01.vectorValue.x,
+                    uv01.vectorValue.y,
+                    uv01.vectorValue.z,
+                    blendUV1);
+                uvms.vectorValue = new Vector4(
+                    uvms.vectorValue.x,
+                    1.0f - blendUV1,
+                    uvms.vectorValue.z,
+                    uvms.vectorValue.w);
             }
         }
 
-        private void DrawBlendMode(MaterialProperty prop)
+        private void DrawLayer(ref bool isShow_LayerColorTex, string label, LayerDatas datas)
         {
-            int value = (int)prop.floatValue;
-
             EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            value = EditorGUILayout.Popup("Blend Mode", value, new[]{"Alpha", "Add", "Screen", "Mul"});
-            EditorGUI.showMixedValue = false;
+            DrawEnumBold(datas._LayerEditMode, label, layerEditModeNames);
             if(EditorGUI.EndChangeCheck())
             {
-                prop.floatValue = value;
+                ApplyLayerPreset(datas, (int)datas._LayerEditMode.floatValue);
             }
-        }
 
-        private void DrawLayer(
-            ref bool isShow_LayerColorTex,
-            MaterialProperty _LayerColorTex,
-            MaterialProperty _LayerColor,
-            MaterialProperty _UVScroll,
-            bool isXY,
-            MaterialProperty _LayerUV01Blend,
-            MaterialProperty _LayerUVMSBlend,
-            MaterialProperty _LayerBlink,
-            MaterialProperty _LayerParams,
-            MaterialProperty _LayerFadeParams,
-            MaterialProperty _LayerRim,
-            MaterialProperty _LayerSpecular,
-            MaterialProperty _LayerBlendMode)
-        {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            DrawFoldoutTextureGUI(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), _LayerColorTex, _LayerColor);
-            if(isShow_LayerColorTex)
+            switch((int)datas._LayerEditMode.floatValue)
             {
-                EditorGUI.indentLevel++;
-                m_MaterialEditor.TextureScaleOffsetProperty(_LayerColorTex);
-                if(isXY) DrawScrollXY(_UVScroll);
-                else     DrawScrollZW(_UVScroll);
-                EditorGUILayout.LabelField("UV Blending", EditorStyles.boldLabel);
-                EditorGUI.indentLevel++;
-                DrawUVBlend(_LayerUV01Blend, "UV0", "UV1");
-                DrawUVBlend(_LayerUVMSBlend, "UV MatCap", "UV Screen");
-                EditorGUI.indentLevel--;
-                EditorGUI.indentLevel--;
-            }
-            DrawLayerAlphaRemap(_LayerFadeParams);
-            DrawLayerParams(_LayerParams);
-            if(_LayerParams.vectorValue.w != 0.0f)
-            {
-                EditorGUI.indentLevel++;
-                DrawLayerDistanceFadeRemap(_LayerFadeParams);
-                EditorGUI.indentLevel--;
-            }
-            DrawBlink(_LayerBlink);
-            DrawToggle(_LayerRim, "Apply Rim");
-            DrawToggle(_LayerSpecular, "Apply Specular");
-            DrawBlendMode(_LayerBlendMode);
-
-            EditorGUI.BeginChangeCheck();
-            int presetType = EditorGUILayout.Popup("Apply Preset", 0, layerPresetNames);
-            if(EditorGUI.EndChangeCheck())
-            {
-                ApplyLayerPreset(
-                    _LayerUV01Blend,
-                    _LayerUVMSBlend,
-                    _LayerParams,
-                    _LayerRim,
-                    _LayerSpecular,
-                    _LayerBlendMode,
-                    presetType);
+                case 0:
+                    DrawLayerFull(ref isShow_LayerColorTex, datas);
+                    break;
+                case 1:
+                    DrawLayerAsEmission(ref isShow_LayerColorTex, datas);
+                    break;
+                case 2:
+                    DrawLayerAsDetail(ref isShow_LayerColorTex, datas);
+                    break;
+                case 3:
+                    DrawLayerAsDecal(ref isShow_LayerColorTex, datas);
+                    break;
+                case 4:
+                    DrawLayerAsMatCap(ref isShow_LayerColorTex, datas);
+                    break;
+                case 5:
+                    DrawLayerAsAngelRing(ref isShow_LayerColorTex, datas);
+                    break;
+                case 6:
+                    DrawLayerAsRimLight(ref isShow_LayerColorTex, datas);
+                    break;
+                case 7:
+                    DrawLayerAsSpecular(ref isShow_LayerColorTex, datas);
+                    break;
+                case 8:
+                    DrawLayerAsDistanceFade(ref isShow_LayerColorTex, datas);
+                    break;
             }
 
             EditorGUILayout.EndVertical();
         }
 
-        private void ApplyLayerPreset(
-            MaterialProperty _LayerUV01Blend,
-            MaterialProperty _LayerUVMSBlend,
-            MaterialProperty _LayerParams,
-            MaterialProperty _LayerRim,
-            MaterialProperty _LayerSpecular,
-            MaterialProperty _LayerBlendMode,
-            int presetType)
+        private void DrawLayerFull(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                if(datas.isXY) DrawScrollXY(datas._UVScroll);
+                else           DrawScrollZW(datas._UVScroll);
+                EditorGUILayout.LabelField("UV Blending", EditorStyles.boldLabel);
+                EditorGUI.indentLevel++;
+                DrawUVBlend(datas._LayerUV01Blend, "UV0", "UV1");
+                DrawUVBlend(datas._LayerUVMSBlend, "UV MatCap", "UV Screen");
+                EditorGUI.indentLevel--;
+                EditorGUI.indentLevel--;
+            }
+            DrawLayerAlphaRemap(datas._LayerFadeParams);
+            DrawLayerParams(datas._LayerParams, true, true, true, true);
+            DrawLayerParams2(datas._LayerParams2, true, true, true, true);
+            if(datas._LayerParams2.vectorValue.w != 0.0f)
+            {
+                EditorGUI.indentLevel++;
+                DrawLayerDistanceFadeRemap(datas._LayerFadeParams);
+                EditorGUI.indentLevel--;
+            }
+            DrawBlink(datas._LayerBlink);
+            DrawToggle(datas._LayerRim, "Apply Rim");
+            DrawToggle(datas._LayerSpecular, "Apply Specular");
+            DrawBlendMode(datas._LayerBlendMode);
+
+            EditorGUI.BeginChangeCheck();
+            int presetType = EditorGUILayout.Popup("Apply Preset", 0, layerPresetNames);
+            if(EditorGUI.EndChangeCheck())
+            {
+                ApplyLayerPreset(datas, presetType);
+            }
+        }
+
+        private void DrawLayerAsEmission(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                if(datas.isXY) DrawScrollXY(datas._UVScroll);
+                else           DrawScrollZW(datas._UVScroll);
+                EditorGUILayout.LabelField("UV Blending", EditorStyles.boldLabel);
+                EditorGUI.indentLevel++;
+                DrawUVBlend(datas._LayerUV01Blend, "UV0", "UV1");
+                DrawUVBlend(datas._LayerUVMSBlend, "UV MatCap", "UV Screen");
+                EditorGUI.indentLevel--;
+                EditorGUI.indentLevel--;
+            }
+            DrawLayerParams(datas._LayerParams, true, true, false, false);
+            DrawLayerParams2(datas._LayerParams2, true, false, true, false);
+            DrawBlink(datas._LayerBlink);
+        }
+
+        private void DrawLayerAsDetail(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                DrawDetailUV(datas._LayerUV01Blend);
+                EditorGUI.indentLevel--;
+            }
+            DrawLayerParams(datas._LayerParams, true, false, false, false);
+            DrawBlendMode(datas._LayerBlendMode);
+        }
+
+        private void DrawLayerAsDecal(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                DrawDetailUV(datas._LayerUV01Blend);
+                EditorGUI.indentLevel--;
+            }
+            DrawLayerAlphaRemap(datas._LayerFadeParams);
+            DrawLayerParams(datas._LayerParams, true, true, true, true);
+            DrawLayerParams2(datas._LayerParams2, false, false, true, true);
+            if(datas._LayerParams2.vectorValue.w != 0.0f)
+            {
+                EditorGUI.indentLevel++;
+                DrawLayerDistanceFadeRemap(datas._LayerFadeParams);
+                EditorGUI.indentLevel--;
+            }
+            DrawBlendMode(datas._LayerBlendMode);
+        }
+
+        private void DrawLayerAsMatCap(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                EditorGUI.indentLevel--;
+            }
+            DoMatCapGUI();
+            DrawLayerParams(datas._LayerParams, true, true, true, true);
+            DrawBlendMode(datas._LayerBlendMode);
+        }
+
+        private void DrawLayerAsAngelRing(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                DrawAngelRingUV(datas._LayerUV01Blend, datas._LayerUVMSBlend);
+                EditorGUI.indentLevel--;
+            }
+            DoMatCapGUI();
+            DrawLayerParams(datas._LayerParams, true, true, true, true);
+            DrawBlendMode(datas._LayerBlendMode);
+        }
+
+        private void DrawLayerAsRimLight(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                if(datas.isXY) DrawScrollXY(datas._UVScroll);
+                else           DrawScrollZW(datas._UVScroll);
+                EditorGUILayout.LabelField("UV Blending", EditorStyles.boldLabel);
+                EditorGUI.indentLevel++;
+                DrawUVBlend(datas._LayerUV01Blend, "UV0", "UV1");
+                DrawUVBlend(datas._LayerUVMSBlend, "UV MatCap", "UV Screen");
+                EditorGUI.indentLevel--;
+                EditorGUI.indentLevel--;
+            }
+            DoRimGUI();
+            DrawLayerParams(datas._LayerParams, true, true, true, true);
+            DrawBlendMode(datas._LayerBlendMode);
+        }
+
+        private void DrawLayerAsSpecular(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                if(datas.isXY) DrawScrollXY(datas._UVScroll);
+                else           DrawScrollZW(datas._UVScroll);
+                EditorGUILayout.LabelField("UV Blending", EditorStyles.boldLabel);
+                EditorGUI.indentLevel++;
+                DrawUVBlend(datas._LayerUV01Blend, "UV0", "UV1");
+                DrawUVBlend(datas._LayerUVMSBlend, "UV MatCap", "UV Screen");
+                EditorGUI.indentLevel--;
+                EditorGUI.indentLevel--;
+            }
+            DoSpecularGUI();
+            DrawLayerParams(datas._LayerParams, true, true, true, true);
+            DrawBlendMode(datas._LayerBlendMode);
+        }
+
+        private void DrawLayerAsDistanceFade(ref bool isShow_LayerColorTex, LayerDatas datas)
+        {
+            DrawFoldoutTexture(ref isShow_LayerColorTex, new GUIContent("Color / Mask", "Color (RGB), Alpha (A)"), datas._LayerColorTex, datas._LayerColor);
+            if(isShow_LayerColorTex)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TextureScaleOffsetProperty(datas._LayerColorTex);
+                if(datas.isXY) DrawScrollXY(datas._UVScroll);
+                else           DrawScrollZW(datas._UVScroll);
+                EditorGUILayout.LabelField("UV Blending", EditorStyles.boldLabel);
+                EditorGUI.indentLevel++;
+                DrawUVBlend(datas._LayerUV01Blend, "UV0", "UV1");
+                DrawUVBlend(datas._LayerUVMSBlend, "UV MatCap", "UV Screen");
+                EditorGUI.indentLevel--;
+                EditorGUI.indentLevel--;
+            }
+            DrawLayerParams2(datas._LayerParams2, false, false, false, true);
+            if(datas._LayerParams2.vectorValue.w != 0.0f)
+            {
+                EditorGUI.indentLevel++;
+                DrawLayerDistanceFadeRemap(datas._LayerFadeParams);
+                EditorGUI.indentLevel--;
+            }
+        }
+
+        private void ApplyLayerPreset(LayerDatas datas, int presetType)
         {
             switch(presetType)
             {
                 case 0: // None
                     break;
                 case 1: // Emission
-                    _LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerRim.floatValue = 0.0f;
-                    _LayerSpecular.floatValue = 0.0f;
-                    _LayerBlendMode.floatValue = 1.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerRim.floatValue = 0.0f;
+                    datas._LayerSpecular.floatValue = 0.0f;
+                    datas._LayerBlendMode.floatValue = 1.0f;
                     break;
                 case 2: // Detail
-                    _LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerRim.floatValue = 0.0f;
-                    _LayerSpecular.floatValue = 0.0f;
-                    _LayerBlendMode.floatValue = 3.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerRim.floatValue = 0.0f;
+                    datas._LayerSpecular.floatValue = 0.0f;
+                    datas._LayerBlendMode.floatValue = 3.0f;
                     break;
                 case 3: // Decal
-                    _LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(0.0f,0.0f,1.0f,0.0f);
-                    _LayerRim.floatValue = 0.0f;
-                    _LayerSpecular.floatValue = 0.0f;
-                    _LayerBlendMode.floatValue = 0.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,1.0f,0.0f);
+                    datas._LayerRim.floatValue = 0.0f;
+                    datas._LayerSpecular.floatValue = 0.0f;
+                    datas._LayerBlendMode.floatValue = 0.0f;
                     break;
                 case 4: // MatCap
-                    _LayerUV01Blend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
-                    _LayerRim.floatValue = 0.0f;
-                    _LayerSpecular.floatValue = 0.0f;
-                    _LayerBlendMode.floatValue = 1.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerRim.floatValue = 0.0f;
+                    datas._LayerSpecular.floatValue = 0.0f;
+                    datas._LayerBlendMode.floatValue = 1.0f;
                     break;
                 case 5: // AngelRing
-                    _LayerUV01Blend.vectorValue = new Vector4(0.0f,0.0f,0.0f,1.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
-                    _LayerRim.floatValue = 0.0f;
-                    _LayerSpecular.floatValue = 0.0f;
-                    _LayerBlendMode.floatValue = 1.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(0.0f,0.0f,0.0f,1.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerRim.floatValue = 0.0f;
+                    datas._LayerSpecular.floatValue = 0.0f;
+                    datas._LayerBlendMode.floatValue = 1.0f;
                     break;
                 case 6: // Rim Light
-                    _LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
-                    _LayerRim.floatValue = 1.0f;
-                    _LayerSpecular.floatValue = 0.0f;
-                    _LayerBlendMode.floatValue = 1.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerRim.floatValue = 1.0f;
+                    datas._LayerSpecular.floatValue = 0.0f;
+                    datas._LayerBlendMode.floatValue = 1.0f;
                     break;
                 case 7: // Specular
-                    _LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
-                    _LayerRim.floatValue = 0.0f;
-                    _LayerSpecular.floatValue = 1.0f;
-                    _LayerBlendMode.floatValue = 1.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(1.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerRim.floatValue = 0.0f;
+                    datas._LayerSpecular.floatValue = 1.0f;
+                    datas._LayerBlendMode.floatValue = 1.0f;
                     break;
                 case 8: // Distance Fade
-                    _LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
-                    _LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
-                    _LayerParams.vectorValue = new Vector4(0.0f,0.0f,0.0f,1.0f);
-                    _LayerRim.floatValue = 0.0f;
-                    _LayerSpecular.floatValue = 0.0f;
-                    _LayerBlendMode.floatValue = 3.0f;
+                    datas._LayerUV01Blend.vectorValue = new Vector4(1.0f,1.0f,0.0f,0.0f);
+                    datas._LayerUVMSBlend.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams.vectorValue = new Vector4(0.0f,0.0f,0.0f,0.0f);
+                    datas._LayerParams2.vectorValue = new Vector4(0.0f,0.0f,0.0f,1.0f);
+                    datas._LayerRim.floatValue = 0.0f;
+                    datas._LayerSpecular.floatValue = 0.0f;
+                    datas._LayerBlendMode.floatValue = 3.0f;
                     break;
             }
         }
 
         //------------------------------------------------------------------------------------------------------------------------------
         // Material
-        private static void MaterialChanged(Material material)
+        private static void MaterialChanged(Material material, bool changed)
         {
-            SetupMaterialWithBlendMode(material, (RenderingMode)material.GetFloat("_Mode"));
+            if(changed) SetupMaterialWithBlendMode(material, (RenderingMode)material.GetFloat("_Mode"));
             SetMaterialKeywords(material);
         }
 
@@ -1320,61 +1412,6 @@ namespace EXShaders
                     material.DisableKeyword("_DETAIL_MULX2");
                     material.EnableKeyword("_PARALLAXMAP");
                     break;
-            }
-        }
-    }
-
-    public class EXHDRDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            float xMax = position.xMax;
-            position.width = string.IsNullOrEmpty(label) ? Mathf.Min(50.0f, position.width) : EditorGUIUtility.labelWidth + 50.0f;
-            Color value = prop.colorValue;
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            #if UNITY_2018_1_OR_NEWER
-                value = EditorGUI.ColorField(position, new GUIContent(label), value, true, true, true);
-            #else
-                value = EditorGUI.ColorField(position, new GUIContent(label), value, true, true, true, null);
-            #endif
-            EditorGUI.showMixedValue = false;
-
-            if(EditorGUI.EndChangeCheck())
-            {
-                prop.colorValue = value;
-            }
-
-            // Hex
-            EditorGUI.BeginChangeCheck();
-            float intensity = value.maxColorComponent > 1.0f ? value.maxColorComponent : 1.0f;
-            Color value2 = new Color(value.r / intensity, value.g / intensity, value.b / intensity, 1.0f);
-            string hex = ColorUtility.ToHtmlStringRGB(value2);
-            int indentLevel = EditorGUI.indentLevel;
-            EditorGUI.indentLevel = 0;
-            position.x += position.width + 4.0f;
-            #if UNITY_2021_2_OR_NEWER
-                position.width = Mathf.Min(50.0f, xMax - position.x);
-                if(position.width > 10.0f)
-                {
-                    EditorGUI.showMixedValue = prop.hasMixedValue;
-                    hex = "#" + EditorGUI.TextField(position, GUIContent.none, hex);
-                    EditorGUI.showMixedValue = false;
-                }
-            #else
-                position.width = 50.0f;
-                EditorGUI.showMixedValue = prop.hasMixedValue;
-                hex = "#" + EditorGUI.TextField(position, GUIContent.none, hex);
-                EditorGUI.showMixedValue = false;
-            #endif
-            EditorGUI.indentLevel = indentLevel;
-            if(EditorGUI.EndChangeCheck())
-            {
-                if(!ColorUtility.TryParseHtmlString(hex, out value2)) return;
-                value.r = value2.r * intensity;
-                value.g = value2.g * intensity;
-                value.b = value2.b * intensity;
-                prop.colorValue = value;
             }
         }
     }

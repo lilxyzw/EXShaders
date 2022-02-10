@@ -82,6 +82,12 @@ float3 EXBlendNormal(float3 dstNormal, float3 srcNormal)
     return float3(dstNormal.xy + srcNormal.xy, dstNormal.z * srcNormal.z);
 }
 
+float2 EXParallax(half3x3 TBN, half3 V)
+{
+    float3 parallaxV = mul(TBN, V);
+    return parallaxV.xy / (parallaxV.z + 0.5);
+}
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Color
 float EXLuminance(float3 rgb)

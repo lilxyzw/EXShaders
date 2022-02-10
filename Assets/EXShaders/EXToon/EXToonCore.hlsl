@@ -29,7 +29,8 @@
 // _Rim1stParams        sharpness   position    direction   offset
 // _SpecularParams      sharpness   position    normal      smoothness
 // _Layer1stBlink       strength    mode        speed       delay
-// _Layer1stParams      lighting    shadow      uv clip     dist fade
+// _Layer1stParams      lighting    invlighting light mask  shadow
+// _Layer1stParams2     parallax    -           uv clip     dist fade
 // _Layer1stUVAnims     scroll      scroll      angle       rotate
 // _Layer1stUV01Blend   uv0         uv0         uv1         uv1
 // _Layer1stUVMSBlend   uvMat       uvMat       uvScn       uvScn
@@ -88,6 +89,9 @@ half4 _SpecularParams;
 half4 _Layer1stParams;
 half4 _Layer2ndParams;
 half4 _Layer3rdParams;
+half4 _Layer1stParams2;
+half4 _Layer2ndParams2;
+half4 _Layer3rdParams2;
 half4 _Layer1stFadeParams;
 half4 _Layer2ndFadeParams;
 half4 _Layer3rdFadeParams;
@@ -166,6 +170,8 @@ struct appdata
     #define EX_V2F_TEXCOORD1
     #define EX_V2F_NORMAL
     #define EX_V2F_TANGENT
+    #define EX_V2F_BITANGENT
+    #define EX_V2F_PARALLAX
     #define EX_V2F_FOG
     #if !defined(EX_PASS_FORWARDADD)
         #define EX_V2F_LIGHTDIRECTION
@@ -179,15 +185,16 @@ struct appdata
     struct v2f
     {
         float4 positionCS   : SV_POSITION;
-        float4 positionWS   : TEXCOORD0;
-        float4 uv01         : TEXCOORD1;
-        half3 normalWS      : TEXCOORD2;
-        half4 tangentWS     : TEXCOORD3;
+        float4 positionWS   : TEXCOORD0;    // positionWS   fogfactor
+        float4 uv01         : TEXCOORD1;    // uv0.xy       uv1.xy
+        half4 normalWS      : TEXCOORD2;    // normalWS     parallax.x
+        half4 tangentWS     : TEXCOORD3;    // tangentWS    tangentOS.w
+        half4 bitangentWS   : TEXCOORD4;    // bitantgentWS parallax.y
         #if !defined(EX_PASS_FORWARDADD)
-            half3 lightDir      : TEXCOORD4;
-            half3 lightCol      : TEXCOORD5;
-            EX_SHADOW_COORDS(6)     // _ShadowCoord
-            EX_ADDLIGHT_COORDS(7)   // additionalLight
+            half3 lightDir      : TEXCOORD5;
+            half3 lightCol      : TEXCOORD6;
+            EX_SHADOW_COORDS(7)     // _ShadowCoord
+            EX_ADDLIGHT_COORDS(8)   // additionalLight
         #endif
         UNITY_VERTEX_INPUT_INSTANCE_ID
         UNITY_VERTEX_OUTPUT_STEREO
@@ -215,6 +222,7 @@ struct EXCustomDatas
 {
     float2 uvMat;
     half3 origN;
+    half3 invlight;
 };
 
 struct EXLayerDatas
@@ -259,9 +267,13 @@ void EXUnpackVertexData(inout EXVertexDatas vd, v2f i, float facing)
     #if defined(EX_V2F_TANGENT)
         vd.tangentWS = i.tangentWS.xyz;
     #endif
-    #if defined(EX_V2F_NORMAL) && defined(EX_V2F_TANGENT)
-        vd.bitangentWS = cross(i.normalWS, i.tangentWS.xyz) * i.tangentWS.w;
+    #if defined(EX_V2F_BITANGENT)
+        vd.bitangentWS = i.bitangentWS.xyz;
         vd.tbnWS = half3x3(vd.tangentWS, vd.bitangentWS, vd.normalWS);
+    #endif
+    #if defined(EX_V2F_PARALLAX)
+        vd.parallax.x = i.normalWS.w;
+        vd.parallax.y = i.bitangentWS.w;
     #endif
     #if defined(EX_V2F_FOG)
         vd.fogFactor = i.positionWS.w;
@@ -343,6 +355,7 @@ void BlendLayer(
     float4 _LayerColorTex_ST,
     float2 _UVScroll,
     half4 _LayerParams,
+    half4 _LayerParams2,
     float4 _LayerBlink,
     float4 _LayerUV01Blend,
     float4 _LayerUVMSBlend,
@@ -356,15 +369,38 @@ void BlendLayer(
 {
     float2 layerUV = EXBlendUV(vd.uv0, vd.uv1, cd.uvMat, vd.uvScn, _LayerUV01Blend, _LayerUVMSBlend);
     layerUV = EXCalcUV(layerUV, _LayerColorTex_ST, _UVScroll);
+
+    // Parallax
+    layerUV += vd.parallax * _LayerParams2.x;
+
     half4 layerColorTex = SAMPLE2D(_LayerColorTex, sampler_LayerColorTex, layerUV) * _LayerColor;
+
+    // Apply Light Color
     layerColorTex.rgb = lerp(layerColorTex.rgb, layerColorTex.rgb * ld.col, _LayerParams.x);
+    layerColorTex.rgb = lerp(layerColorTex.rgb, layerColorTex.rgb * cd.invlight, _LayerParams.y);
+
+    // Rim
     layerColorTex.rgb = _LayerRim ? layerColorTex.rgb * layerDatas.rim : layerColorTex.rgb;
+
+    // Alpha Remap
     half layerBlend = EXRemap(layerColorTex.a, _LayerFadeParams.x, _LayerFadeParams.y);
+
+    // Blink & Mask
     layerBlend *= mask * EXCalcBlink(_LayerBlink);
-    layerBlend = lerp(layerBlend, layerBlend * NdotL, _LayerParams.y);
+
+    // Light & Shadow Mask
+    layerBlend = lerp(layerBlend, layerBlend - layerBlend * NdotL, _LayerParams.z);
+    layerBlend = lerp(layerBlend, layerBlend * NdotL, _LayerParams.w);
+
+    // Specular
     layerBlend = _LayerSpecular ? layerBlend * layerDatas.specular : layerBlend;
-    layerBlend = _LayerParams.z && !EXClipUV(layerUV) ? 0.0 : layerBlend;
-    layerBlend = _LayerParams.w ? layerBlend * EXRemap(vd.depth, _LayerFadeParams.z, _LayerFadeParams.w) : layerBlend;
+
+    // UV Clipping
+    layerBlend = _LayerParams2.z && !EXClipUV(layerUV) ? 0.0 : layerBlend;
+
+    // Distance Fade
+    layerBlend = _LayerParams2.w ? layerBlend * EXRemap(vd.depth, _LayerFadeParams.z, _LayerFadeParams.w) : layerBlend;
+
     col.rgb = EXBlendColor(col.rgb, layerColorTex.rgb, layerBlend, _LayerBlendMode);
 }
 
@@ -394,6 +430,10 @@ v2f vert(appdata i)
     float4 positionCS = EXTransformWStoCS(positionWS.xyz);
     half3 normalWS = normalize(EXTransformNormalOStoWS(i.normalOS));
     half3 tangentWS = normalize(EXTransformDirOStoWS(i.tangentOS.xyz));
+    half3 bitangentWS = cross(normalWS, tangentWS) * i.tangentOS.w;
+    half3x3 tbnWS = half3x3(tangentWS, bitangentWS, normalWS);
+    float3 V = normalize(EXHeadDirection(EXToAbsolutePositionWS(positionWS)));
+    float2 parallax = EXParallax(tbnWS, V);
 
     // Fog
     half fogfactor = EXFog(positionCS.w);
@@ -432,6 +472,13 @@ v2f vert(appdata i)
     #if defined(EX_V2F_TANGENT)
         o.tangentWS.xyz = tangentWS;
         o.tangentWS.w = i.tangentOS.w;
+    #endif
+    #if defined(EX_V2F_BITANGENT)
+        o.bitangentWS.xyz = bitangentWS;
+    #endif
+    #if defined(EX_V2F_PARALLAX)
+        o.normalWS.w = parallax.x;
+        o.bitangentWS.w = parallax.y;
     #endif
     #if defined(EX_V2F_LIGHTDIRECTION)
         o.lightDir = half3(0.0,0.01,-0.01);
@@ -487,6 +534,8 @@ half4 frag(v2f i EX_VFACE(facing)) : SV_Target
         ld.col = min(ld.col * ld.attenuation, _LightParams.y);
         ld.col = ld.col - ld.col * _LightParams.z;
     #endif
+
+    cd.invlight = saturate(1.0 - ld.col);
 
     // Main
     #if defined(EX_OL)
@@ -620,6 +669,7 @@ half4 frag(v2f i EX_VFACE(facing)) : SV_Target
             _Layer1stColorTex_ST,
             _UVScrollLML1.zw,
             _Layer1stParams,
+            _Layer1stParams2,
             _Layer1stBlink,
             _Layer1stUV01Blend,
             _Layer1stUVMSBlend,
@@ -645,6 +695,7 @@ half4 frag(v2f i EX_VFACE(facing)) : SV_Target
             _Layer2ndColorTex_ST,
             _UVScrollL2L3.xy,
             _Layer2ndParams,
+            _Layer2ndParams2,
             _Layer2ndBlink,
             _Layer2ndUV01Blend,
             _Layer2ndUVMSBlend,
@@ -670,6 +721,7 @@ half4 frag(v2f i EX_VFACE(facing)) : SV_Target
             _Layer3rdColorTex_ST,
             _UVScrollL2L3.zw,
             _Layer3rdParams,
+            _Layer3rdParams2,
             _Layer3rdBlink,
             _Layer3rdUV01Blend,
             _Layer3rdUVMSBlend,

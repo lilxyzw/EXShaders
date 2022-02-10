@@ -90,7 +90,7 @@
 #endif
 
 #if VERSION_GREATER_EQUAL(10, 1) && defined(EX_PASS_DEPTHNORMALS)
-    #define EX_OUTPUT_SUBPASS(i) outColor = float4(PackNormalOctRectEncode(normalize(mul((float3x3)EX_MATRIX_V, i.normalWS))), 0.0, 0.0)
+    #define EX_OUTPUT_SUBPASS(i) outColor = float4(PackNormalOctRectEncode(normalize(mul((float3x3)EX_MATRIX_V, i.normalWS.xyz))), 0.0, 0.0)
 #elif defined(EX_PASS_META)
     #define EX_OUTPUT_SUBPASS(i) outColor = col
 #else

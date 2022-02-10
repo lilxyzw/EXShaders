@@ -44,6 +44,9 @@
         _Layer1stParams         ("", Vector) = (0,0,0,0)
         _Layer2ndParams         ("", Vector) = (0,0,0,0)
         _Layer3rdParams         ("", Vector) = (0,0,0,0)
+        _Layer1stParams2        ("", Vector) = (0,0,0,0)
+        _Layer2ndParams2        ("", Vector) = (0,0,0,0)
+        _Layer3rdParams2        ("", Vector) = (0,0,0,0)
         _Layer1stBlink          ("", Vector) = (0,0,3.1415927,0)
         _Layer2ndBlink          ("", Vector) = (0,0,3.1415927,0)
         _Layer3rdBlink          ("", Vector) = (0,0,3.1415927,0)
@@ -59,8 +62,11 @@
 
         _Mode                   ("", Float) = 0
         _Layers                 ("", Float) = 0
+        _Layer1stEditMode       ("", Float) = 0
+        _Layer2ndEditMode       ("", Float) = 0
+        _Layer3rdEditMode       ("", Float) = 0
         _Cutoff                 ("", Range(-0.001,1.001)) = 0.5
-        _MatCapNormal           ("", Float) = 1
+        _MatCapNormal           ("", Range(0,1)) = 1
         _NormalScale            ("", Range(-10,10)) = 1
         _OutlineWidth           ("", Float) = 0
 

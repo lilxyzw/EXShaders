@@ -641,7 +641,7 @@ half3 EXGetAdditionalLights(float3 positionWS, float4 positionCS, uint rendering
     #define EX_SHADOW_COORDS(idx)
     #define EX_TRANSFER_SHADOW(vi,uv,o)
     #define EX_LIGHT_ATTENUATION(atten,i) \
-        atten = EXGetDirectionalShadow(posInput, i.normalWS, vd.featureFlags)
+        atten = EXGetDirectionalShadow(posInput, i.normalWS.xyz, vd.featureFlags)
 #else
     #define EX_SHADOW_COORDS(idx)
     #define EX_TRANSFER_SHADOW(vi,uv,o)
